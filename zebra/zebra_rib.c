@@ -68,6 +68,9 @@ static const struct
   [ZEBRA_ROUTE_OSPF6]   = {ZEBRA_ROUTE_OSPF6,   110},
   [ZEBRA_ROUTE_ISIS]    = {ZEBRA_ROUTE_ISIS,    115},
   [ZEBRA_ROUTE_BGP]     = {ZEBRA_ROUTE_BGP,      20  /* IBGP is 200. */},
+  [ZEBRA_ROUTE_HSLS]    = {ZEBRA_ROUTE_HSLS,      0},
+  [ZEBRA_ROUTE_OLSR]    = {ZEBRA_ROUTE_OLSR,      0},
+  [ZEBRA_ROUTE_BATMAN]  = {ZEBRA_ROUTE_BATMAN,    0},
   [ZEBRA_ROUTE_BABEL]   = {ZEBRA_ROUTE_BABEL,    95},
   /* no entry/default: 150 */
 };
@@ -434,6 +437,18 @@ nexthop_active_ipv4 (struct rib *rib, struct nexthop *nexthop, int set,
 	      
 	      return 1;
 	    }
+	  else if (match->type == ZEBRA_ROUTE_OLSR)
+	    {
+	      for (newhop = match->nexthop; newhop; newhop = newhop->next)
+		if (CHECK_FLAG (newhop->flags, NEXTHOP_FLAG_FIB)
+		    && newhop->type == NEXTHOP_TYPE_IFINDEX)
+		  {
+		    if (nexthop->type == NEXTHOP_TYPE_IPV4)
+		      nexthop->ifindex = newhop->ifindex;
+		    return 1;
+		  }
+	      return 0;
+	    }
 	  else if (CHECK_FLAG (rib->flags, ZEBRA_FLAG_INTERNAL))
 	    {
 	      for (newhop = match->nexthop; newhop; newhop = newhop->next)
@@ -535,6 +550,18 @@ nexthop_active_ipv6 (struct rib *rib, struct nexthop *nexthop, int set,
 		nexthop->ifindex = newhop->ifindex;
 	      
 	      return 1;
+	    }
+	  else if (match->type == ZEBRA_ROUTE_OLSR)
+	    {
+	      for (newhop = match->nexthop; newhop; newhop = newhop->next)
+		if (CHECK_FLAG (newhop->flags, NEXTHOP_FLAG_FIB)
+		    && newhop->type == NEXTHOP_TYPE_IFINDEX)
+		  {
+		    if (nexthop->type == NEXTHOP_TYPE_IPV6)
+		      nexthop->ifindex = newhop->ifindex;
+		    return 1;
+		  }
+	      return 0;
 	    }
 	  else if (CHECK_FLAG (rib->flags, ZEBRA_FLAG_INTERNAL))
 	    {
@@ -1376,6 +1403,8 @@ static const u_char meta_queue_map[ZEBRA_ROUTE_MAX] = {
   [ZEBRA_ROUTE_ISIS]    = 2,
   [ZEBRA_ROUTE_BGP]     = 3,
   [ZEBRA_ROUTE_HSLS]    = 4,
+  [ZEBRA_ROUTE_OLSR]    = 4,
+  [ZEBRA_ROUTE_BATMAN]  = 4,
   [ZEBRA_ROUTE_BABEL]   = 2,
 };
 
