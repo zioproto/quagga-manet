@@ -437,18 +437,6 @@ nexthop_active_ipv4 (struct rib *rib, struct nexthop *nexthop, int set,
 	      
 	      return 1;
 	    }
-	  else if (match->type == ZEBRA_ROUTE_OLSR)
-	    {
-	      for (newhop = match->nexthop; newhop; newhop = newhop->next)
-		if (CHECK_FLAG (newhop->flags, NEXTHOP_FLAG_FIB)
-		    && newhop->type == NEXTHOP_TYPE_IFINDEX)
-		  {
-		    if (nexthop->type == NEXTHOP_TYPE_IPV4)
-		      nexthop->ifindex = newhop->ifindex;
-		    return 1;
-		  }
-	      return 0;
-	    }
 	  else if (CHECK_FLAG (rib->flags, ZEBRA_FLAG_INTERNAL))
 	    {
 	      for (newhop = match->nexthop; newhop; newhop = newhop->next)
@@ -467,6 +455,18 @@ nexthop_active_ipv4 (struct rib *rib, struct nexthop *nexthop, int set,
 			    || newhop->type == NEXTHOP_TYPE_IPV4_IFINDEX)
 			  nexthop->rifindex = newhop->ifindex;
 		      }
+		    return 1;
+		  }
+	      return 0;
+	    }
+	  else if (match->type == ZEBRA_ROUTE_OLSR)
+	    {
+	      for (newhop = match->nexthop; newhop; newhop = newhop->next)
+		if (CHECK_FLAG (newhop->flags, NEXTHOP_FLAG_FIB)
+		    && newhop->type == NEXTHOP_TYPE_IFINDEX)
+		  {
+		    if (nexthop->type == NEXTHOP_TYPE_IPV4)
+		      nexthop->ifindex = newhop->ifindex;
 		    return 1;
 		  }
 	      return 0;
@@ -551,18 +551,6 @@ nexthop_active_ipv6 (struct rib *rib, struct nexthop *nexthop, int set,
 	      
 	      return 1;
 	    }
-	  else if (match->type == ZEBRA_ROUTE_OLSR)
-	    {
-	      for (newhop = match->nexthop; newhop; newhop = newhop->next)
-		if (CHECK_FLAG (newhop->flags, NEXTHOP_FLAG_FIB)
-		    && newhop->type == NEXTHOP_TYPE_IFINDEX)
-		  {
-		    if (nexthop->type == NEXTHOP_TYPE_IPV6)
-		      nexthop->ifindex = newhop->ifindex;
-		    return 1;
-		  }
-	      return 0;
-	    }
 	  else if (CHECK_FLAG (rib->flags, ZEBRA_FLAG_INTERNAL))
 	    {
 	      for (newhop = match->nexthop; newhop; newhop = newhop->next)
@@ -583,6 +571,18 @@ nexthop_active_ipv6 (struct rib *rib, struct nexthop *nexthop, int set,
 			    || newhop->type == NEXTHOP_TYPE_IPV6_IFNAME)
 			  nexthop->rifindex = newhop->ifindex;
 		      }
+		    return 1;
+		  }
+	      return 0;
+	    }
+	  else if (match->type == ZEBRA_ROUTE_OLSR)
+	    {
+	      for (newhop = match->nexthop; newhop; newhop = newhop->next)
+		if (CHECK_FLAG (newhop->flags, NEXTHOP_FLAG_FIB)
+		    && newhop->type == NEXTHOP_TYPE_IFINDEX)
+		  {
+		    if (nexthop->type == NEXTHOP_TYPE_IPV6)
+		      nexthop->ifindex = newhop->ifindex;
 		    return 1;
 		  }
 	      return 0;
