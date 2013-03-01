@@ -185,7 +185,7 @@ bgp_accept (struct thread *thread)
     zlog_debug ("[Event] Make dummy peer structure until read Open packet");
 
   {
-    char buf[SU_ADDRSTRLEN + 1];
+    char buf[SU_ADDRSTRLEN];
 
     peer = peer_create_accept (peer1->bgp);
     SET_FLAG (peer->sflags, PEER_STATUS_ACCEPT_PEER);
@@ -193,8 +193,7 @@ bgp_accept (struct thread *thread)
     peer->fd = bgp_sock;
     peer->status = Active;
     peer->local_id = peer1->local_id;
-    peer->v_holdtime = peer1->v_holdtime;
-    peer->v_keepalive = peer1->v_keepalive;
+    peer->v_holdtime = BGP_LARGE_HOLDTIME;
 
     /* Make peer's address string. */
     sockunion2str (&su, buf, SU_ADDRSTRLEN);

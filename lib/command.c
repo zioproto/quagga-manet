@@ -868,86 +868,7 @@ cmd_ipv6_match (const char *str)
   if (ret == 1)
     return exact_match;
 
-  while (*str != '\0')
-    {
-      switch (state)
-	{
-	case STATE_START:
-	  if (*str == ':')
-	    {
-	      if (*(str + 1) != ':' && *(str + 1) != '\0')
-		return no_match;
-     	      colons--;
-	      state = STATE_COLON;
-	    }
-	  else
-	    {
-	      sp = str;
-	      state = STATE_ADDR;
-	    }
-
-	  continue;
-	case STATE_COLON:
-	  colons++;
-	  if (*(str + 1) == ':')
-	    state = STATE_DOUBLE;
-	  else
-	    {
-	      sp = str + 1;
-	      state = STATE_ADDR;
-	    }
-	  break;
-	case STATE_DOUBLE:
-	  if (double_colon)
-	    return no_match;
-
-	  if (*(str + 1) == ':')
-	    return no_match;
-	  else
-	    {
-	      if (*(str + 1) != '\0')
-		colons++;
-	      sp = str + 1;
-	      state = STATE_ADDR;
-	    }
-
-	  double_colon++;
-	  nums++;
-	  break;
-	case STATE_ADDR:
-	  if (*(str + 1) == ':' || *(str + 1) == '\0')
-	    {
-	      if (str - sp > 3)
-		return no_match;
-
-	      nums++;
-	      state = STATE_COLON;
-	    }
-	  if (*(str + 1) == '.')
-	    state = STATE_DOT;
-	  break;
-	case STATE_DOT:
-	  state = STATE_ADDR;
-	  break;
-	default:
-	  break;
-	}
-
-      if (nums > 8)
-	return no_match;
-
-      if (colons > 7)
-	return no_match;
-
-      str++;
-    }
-
-#if 0
-  if (nums < 11)
-    return partly_match;
-#endif /* 0 */
-
-  return exact_match;
+  return no_match;
 }
 
 static enum match_type
@@ -2601,6 +2522,13 @@ DEFUN (config_write_file,
 		 VTY_NEWLINE);
         goto finished;
       }
+
+#if 0
+  /* This code fails on UNION MOUNTs and similar filesystems if the
+   * config file is still on the RO layer. Hardlinks across layers
+   * will not work and cause quagga to fail saving the configuration...
+   * should use rename() to move files around...
+   */
   if (link (config_file, config_file_sav) != 0)
     {
       vty_out (vty, "Can't backup old configuration file %s.%s", config_file_sav,
@@ -2614,7 +2542,23 @@ DEFUN (config_write_file,
 	        VTY_NEWLINE);
       goto finished;
     }
+#else
+  /* And this is the code that hopefully does work */
+  if (rename (config_file, config_file_sav) != 0)
+    {
+      vty_out (vty, "Can't backup old configuration file %s.%s", config_file_sav,
+	        VTY_NEWLINE);
+      goto finished;
+    }
+  sync ();
+#endif
+
+#if 0
+  /* same here. Please no cross-filesystem hardlinks... */
   if (link (config_file_tmp, config_file) != 0)
+#else
+  if (rename (config_file_tmp, config_file) != 0)
+#endif
     {
       vty_out (vty, "Can't save configuration file %s.%s", config_file,
 	       VTY_NEWLINE);

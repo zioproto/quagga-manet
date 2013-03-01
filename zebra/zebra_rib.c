@@ -67,6 +67,9 @@ static const struct
   [ZEBRA_ROUTE_OSPF6]   = {ZEBRA_ROUTE_OSPF6,   110},
   [ZEBRA_ROUTE_ISIS]    = {ZEBRA_ROUTE_ISIS,    115},
   [ZEBRA_ROUTE_BGP]     = {ZEBRA_ROUTE_BGP,      20  /* IBGP is 200. */},
+  [ZEBRA_ROUTE_HSLS]    = {ZEBRA_ROUTE_HSLS,      0},
+  [ZEBRA_ROUTE_OLSR]    = {ZEBRA_ROUTE_OLSR,      0},
+  [ZEBRA_ROUTE_BATMAN]  = {ZEBRA_ROUTE_BATMAN,    0},
   [ZEBRA_ROUTE_BABEL]   = {ZEBRA_ROUTE_BABEL,    95},
   /* no entry/default: 150 */
 };
@@ -403,6 +406,18 @@ nexthop_active_ipv4 (struct rib *rib, struct nexthop *nexthop, int set,
 		  }
 	      return 0;
 	    }
+	  else if (match->type == ZEBRA_ROUTE_OLSR)
+	    {
+	      for (newhop = match->nexthop; newhop; newhop = newhop->next)
+		if (CHECK_FLAG (newhop->flags, NEXTHOP_FLAG_FIB)
+		    && newhop->type == NEXTHOP_TYPE_IFINDEX)
+		  {
+		    if (nexthop->type == NEXTHOP_TYPE_IPV4)
+		      nexthop->ifindex = newhop->ifindex;
+		    return 1;
+		  }
+	      return 0;
+	    }
 	  else
 	    {
 	      return 0;
@@ -503,6 +518,18 @@ nexthop_active_ipv6 (struct rib *rib, struct nexthop *nexthop, int set,
 			    || newhop->type == NEXTHOP_TYPE_IPV6_IFNAME)
 			  nexthop->rifindex = newhop->ifindex;
 		      }
+		    return 1;
+		  }
+	      return 0;
+	    }
+	  else if (match->type == ZEBRA_ROUTE_OLSR)
+	    {
+	      for (newhop = match->nexthop; newhop; newhop = newhop->next)
+		if (CHECK_FLAG (newhop->flags, NEXTHOP_FLAG_FIB)
+		    && newhop->type == NEXTHOP_TYPE_IFINDEX)
+		  {
+		    if (nexthop->type == NEXTHOP_TYPE_IPV6)
+		      nexthop->ifindex = newhop->ifindex;
 		    return 1;
 		  }
 	      return 0;
@@ -678,8 +705,8 @@ rib_lookup_ipv4_route (struct prefix_ipv4 *p, union sockunion * qgate)
     if (CHECK_FLAG (nexthop->flags, NEXTHOP_FLAG_FIB))
     {
       /* We are happy with either direct or recursive hexthop */
-      if (nexthop->gate.ipv4.s_addr == qgate->sin.sin_addr.s_addr ||
-          nexthop->rgate.ipv4.s_addr == qgate->sin.sin_addr.s_addr)
+      if (nexthop->gate.ipv4.s_addr == sockunion2ip (qgate) ||
+          nexthop->rgate.ipv4.s_addr == sockunion2ip (qgate))
         return ZEBRA_RIB_FOUND_EXACT;
       else
       {
@@ -688,7 +715,7 @@ rib_lookup_ipv4_route (struct prefix_ipv4 *p, union sockunion * qgate)
           char gate_buf[INET_ADDRSTRLEN], rgate_buf[INET_ADDRSTRLEN], qgate_buf[INET_ADDRSTRLEN];
           inet_ntop (AF_INET, &nexthop->gate.ipv4.s_addr, gate_buf, INET_ADDRSTRLEN);
           inet_ntop (AF_INET, &nexthop->rgate.ipv4.s_addr, rgate_buf, INET_ADDRSTRLEN);
-          inet_ntop (AF_INET, &qgate->sin.sin_addr.s_addr, qgate_buf, INET_ADDRSTRLEN);
+          inet_ntop (AF_INET, &sockunion2ip (qgate), qgate_buf, INET_ADDRSTRLEN);
           zlog_debug ("%s: qgate == %s, gate == %s, rgate == %s", __func__, qgate_buf, gate_buf, rgate_buf);
         }
         return ZEBRA_RIB_FOUND_NOGATE;
@@ -1236,6 +1263,8 @@ static const u_char meta_queue_map[ZEBRA_ROUTE_MAX] = {
   [ZEBRA_ROUTE_ISIS]    = 2,
   [ZEBRA_ROUTE_BGP]     = 3,
   [ZEBRA_ROUTE_HSLS]    = 4,
+  [ZEBRA_ROUTE_OLSR]    = 4,
+  [ZEBRA_ROUTE_BATMAN]  = 4,
   [ZEBRA_ROUTE_BABEL]   = 2,
 };
 
